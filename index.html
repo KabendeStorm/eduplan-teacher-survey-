@@ -995,13 +995,16 @@
     <!-- Chart.js Library -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
-    <!-- JavaScript for form handling and analytics -->
+    <!-- JavaScript for form handling and centralized data collection -->
     <script>
-        // Store survey responses
+        // Google Apps Script Web App URL - REPLACE WITH YOUR URL
+        const SCRIPT_URL = 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID_HERE/exec';
+        
+        // Store survey responses locally as backup
         let surveyData = JSON.parse(localStorage.getItem('eduplanSurveyData')) || [];
         
         // Form submission
-        document.getElementById('teacherSurvey').addEventListener('submit', function(e) {
+        document.getElementById('teacherSurvey').addEventListener('submit', async function(e) {
             e.preventDefault();
             
             const formData = new FormData(this);
@@ -1032,15 +1035,33 @@
                 parseFloat(response.hoursRecords || 0);
             response.totalHours = totalHours;
             
-            // Save to localStorage
+            // Save to localStorage as backup
             surveyData.push(response);
             localStorage.setItem('eduplanSurveyData', JSON.stringify(surveyData));
             
-            // Show success message
-            alert('Thank you for completing the survey! Your responses have been recorded.');
-            
-            // Show analytics dashboard
-            showAnalytics();
+            try {
+                // Send to Google Sheets via Apps Script
+                await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(response)
+                });
+                
+                // Show success message
+                alert('Thank you for completing the survey! Your responses have been recorded.');
+                
+                // Show analytics dashboard
+                showAnalytics();
+                
+            } catch (error) {
+                console.error('Error sending to server:', error);
+                // Data is still saved locally
+                alert('Survey completed! Your responses have been saved.');
+                showAnalytics();
+            }
         });
         
         // Show analytics dashboard
